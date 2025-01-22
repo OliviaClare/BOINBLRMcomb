@@ -1,0 +1,28 @@
+Package: BOINcombP
+Type: Package
+Title: Bayesian Optimal INterval Design for Drug-Combination with prespecified Preference(BOIN-CombP) Phase I Clinical Trials
+Version: 0.1.0
+Imports: BOIN
+Author: Yuxuan Chen, Haiming Zhou, and Philip He
+Maintainer: Yuxuan Chen <yuxuan.chen@daiichisankyo.com>
+Description: The Bayesian optimal interval (BOIN) design framework, a 
+  model-assisted approach for identifying the maximum tolerated dose (MTD)
+  in Phase I clinical trials, has become the standard method for dose-finding 
+  in oncology. In combination dose escalation studies, we usually have studied
+  the safety profile of each drug used as monotherapy. BOIN combination design
+  was proposed with all possible combinations explored. However, a practical 
+  preference based on prior clinical knowledge is often available for specific 
+  dose combinations or omitting certain doses. As a result, the BOIN combination
+  design is usually not suitable for practical use. To address this need,
+  we have developed and evaluated a generalized BOIN combination design that 
+  incorporates the preference (BOIN-CombP). Three categories of preference 
+  are considered including preferred, lower priority, and not considered. 
+  The performance of BOIN-CombP design has been evaluated by extensive 
+  simulations. The simulations demonstrated that the probability of selecting
+  the correct MTD increases if it is among the preferred doses while the 
+  BOIN-CombP design achieves comparable toxicity control as the BOIN Combination
+  design (BOIN-Comb).
+License: GPL-2
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.3.2

@@ -85,9 +85,10 @@
 #' (5) the number of toxicities observed at each dose level (\code{$ntox}),
 #' (6) the total number of patients in the trial (\code{$totaln}),
 #' (7) the total number of toxicities observed for the trial (\code{$totaltox})
-#' (8) the pecentage of correct selection (\code{$pcs}),
-#' (9) the total percentage of patients treated at the MTD (\code{$npercent}).
-#' (10) the percentage of early stopping without selecting the MTD (\code{$percentstop})
+#' (8) the percentage of correct selection (\code{$pcs}),
+#' (9) the percentage of acceptable selection (\code{$pas}),
+#' (10) the total percentage of patients treated at the MTD (\code{$npercent}).
+#' (11) the percentage of early stopping without selecting the MTD (\code{$percentstop})
 #'
 #'
 #' @note We should avoid setting the values of \code{p.saf} and \code{p.tox} very close to the
@@ -476,6 +477,7 @@ get.oc.combP <- function (target, p.true, ncohort, cohortsize, preferred.doses, 
                  npatients = round(apply(N, c(1, 2), mean),2), ntox = round(apply(Y, c(1, 2), mean), 2),
                  totaltox = round(sum(Y)/ntrial, 1), totaln = round(sum(N)/ntrial,1),
                  pcs = paste(round(sum(selpercent[which(abs(p.true -target) == min(abs(p.true - target)), arr.ind = TRUE)]),1), "%", sep = ""),
+                 pas = paste(round(sum(selpercent[which((p.true<=0.33 & p.true>=0.16), arr.ind = TRUE)]),1), "%"),
                  npercent = paste(round(sum(nptsdose[which(abs(p.true -target) == min(abs(p.true - target)), arr.ind = TRUE)])/sum(nptsdose) *100, 1), "%", sep = ""),
                  percentstop=100-sum(round(selpercent,2)),flowchart = FALSE)
       rownames(out$npatients) = paste("DoseA", 1:dim(p.true)[1],
@@ -512,8 +514,11 @@ get.oc.combP <- function (target, p.true, ncohort, cohortsize, preferred.doses, 
                              sep = "")
       out = list(p.true = round(t(p.true), 2), preferred.doses = preferred.doses.c,  selpercent = round(t(selpercent),2),
                  npatients = round(t(apply(N, c(1, 2), mean)), 2), ntox = round(t(apply(Y, c(1, 2), mean)),2),
-                 totaltox = round(sum(Y)/ntrial, 1), totaln = round(sum(N)/ntrial,1), pcs = paste(round(sum(selpercent[which(abs(p.true -target) == min(abs(p.true - target)), arr.ind = TRUE)]),
-                                                                                                        1), "%"), npercent = paste(round(sum(nptsdose[which(abs(p.true -target) == min(abs(p.true - target)), arr.ind = TRUE)])/sum(nptsdose) *100, 1), "%"),
+                 totaltox = round(sum(Y)/ntrial, 1), totaln = round(sum(N)/ntrial,1),
+                 pcs = paste(round(sum(selpercent[which(abs(p.true -target) == min(abs(p.true - target)), arr.ind = TRUE)]),
+                                                                                                        1), "%"),
+                 pas = paste(round(sum(selpercent[which((p.true<=0.33 & p.true>=0.16), arr.ind = TRUE)]),1), "%"),
+                 npercent = paste(round(sum(nptsdose[which(abs(p.true -target) == min(abs(p.true - target)), arr.ind = TRUE)])/sum(nptsdose) *100, 1), "%"),
                  percentstop=100-sum(round(selpercent,2)),
                  flowchart = FALSE)
 

@@ -10,7 +10,7 @@ Bayesian Optimal INterval Design for Drug-Combination with prespecified Preferen
 
 #Install package BOINcombP
 
-`devtools::install_github("yuxuanchn/BOINcombP")`
+`devtools::install_github("OliviaClare/BOINcombP")`
 
 #To browse the package functions, type
 

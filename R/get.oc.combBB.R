@@ -243,6 +243,198 @@ get.oc.combBB <- function (BLRMspecs, target, p.true, ncohort, cohortsize, prefe
 
     return(neighbor_rows)
   }
+  blrm_combo_ss_local <- function (prior, data, output_excel = FALSE, output_pdf = FALSE)
+  {
+    tox_prob <- function(d1, d2, param) {
+      logit_pi1 <- log(param[1]) + param[2] * d1
+      pi1 <- exp(logit_pi1)/(1 + exp(logit_pi1))
+      logit_pi2 <- log(param[3]) + param[4] * d2
+      pi2 <- exp(logit_pi2)/(1 + exp(logit_pi2))
+      odds_pi12 <- exp(param[5] * exp(d1) * exp(d2)) * (pi1 +
+                                                          pi2 - pi1 * pi2)/((1 - pi1) * (1 - pi2))
+      pi12 <- odds_pi12/(1 + odds_pi12)
+      return(list(pi1 = pi1, pi2 = pi2, pi12 = pi12))
+    }
+    prior_summary <- function(prior) {
+      prior.drug1 <- prior[[1]]
+      prior.drug2 <- prior[[2]]
+      prior.inter <- prior[[3]]
+      mean1 <- prior.drug1[[1]]
+      se1 <- prior.drug1[[2]]
+      corr1 <- prior.drug1[[3]]
+      mean2 <- prior.drug2[[1]]
+      se2 <- prior.drug2[[2]]
+      corr2 <- prior.drug2[[3]]
+      mean3 <- prior.inter[[1]]
+      se3 <- prior.inter[[2]]
+      covariance_matrix1 <- matrix(c(se1[1]^2, se1[1] * se1[2] *
+                                       corr1, se1[1] * se1[2] * corr1, se1[2]^2), ncol = 2,
+                                   byrow = T)
+      covariance_matrix2 <- matrix(c(se2[1]^2, se2[1] * se2[2] *
+                                       corr2, se2[1] * se2[2] * corr2, se2[2]^2), ncol = 2,
+                                   byrow = T)
+      return(list(prior1 = list(mean1, covariance_matrix1),
+                  prior2 = list(mean2, covariance_matrix2), prior3 = list(mean3,
+                                                                          se3^2)))
+    }
+    single_cohort <- function() {
+      mydata <- list(nb_pat = sum(cohort_size), s = data_dlt,
+                     d1 = data_sdose1, d2 = data_sdose2, p1 = prior_para$prior1[[1]],
+                     p2 = prior_para$prior1[[2]], p3 = prior_para$prior2[[1]],
+                     p4 = prior_para$prior2[[2]], p5 = prior_para$prior3[[1]],
+                     p6 = prior_para$prior3[[2]])
+      niters <- (1 + burn_in) * nsamples/2
+      modelstring <- "model\n    {\n    Omega1[1:2,1:2] <- inverse(p2[,])\n    log.alpha[1:2] ~ dmnorm(p1[], Omega1[,])\n    \n    Omega2[1:2,1:2] <- inverse(p4[,])\n    log.alpha[3:4] ~ dmnorm(p3[], Omega2[,])\n    \n    tau <- 1/p6\n    eta ~ dnorm(p5, tau)\n    \n    alpha[1] <- exp(log.alpha[1])\n    alpha[2] <- exp(log.alpha[2])\n    alpha[3] <- exp(log.alpha[3])\n    alpha[4] <- exp(log.alpha[4])\n    \n    for(i in 1:nb_pat){\n    logit(pi1[i]) <- log.alpha[1] + alpha[2] * d1[i]\n    logit(pi2[i]) <- log.alpha[3] + alpha[4] * d2[i]\n    odds_pi12[i] <- exp(eta * exp(d1[i]) * exp(d2[i])) * (pi1[i] + pi2[i] - pi1[i] * pi2[i])/((1 - pi1[i]) * (1 - pi2[i]))\n    pi12[i] <- odds_pi12[i]/(1 + odds_pi12[i])\n    s[i] ~ dbern(pi12[i])\n    }\n    }"
+      inits.list <- list(list(log.alpha = c(-3, 0, -3, 0),
+                              eta = 0, .RNG.seed = seeds[1], .RNG.name = "base::Wichmann-Hill"),
+                         list(log.alpha = c(-3, 0, -3, 0), eta = 0, .RNG.seed = seeds[2],
+                              .RNG.name = "base::Wichmann-Hill"))
+      jagsobj <- rjags::jags.model(textConnection(modelstring),
+                                   data = mydata, n.chains = 2, quiet = TRUE, inits = inits.list)
+      update(jagsobj, n.iter = niters, progress.bar = "none")
+      res <- rjags::jags.samples(jagsobj, c("alpha", "eta"),
+                                 n.iter = niters, progress.bar = "none")
+      alpha1 <- res$alpha[1, , ][-c(1:(burn_in * nsamples/2)),
+      ]
+      beta1 <- res$alpha[2, , ][-c(1:(burn_in * nsamples/2)),
+      ]
+      alpha2 <- res$alpha[3, , ][-c(1:(burn_in * nsamples/2)),
+      ]
+      beta2 <- res$alpha[4, , ][-c(1:(burn_in * nsamples/2)),
+      ]
+      eta <- res$eta[1, , ][-c(1:(burn_in * nsamples/2)),
+      ]
+      posterior_param <- cbind(c(alpha1), c(beta1), c(alpha2),
+                               c(beta2), c(eta))
+      log_para <- apply(posterior_param[, 1:4], 2, log)
+      log_para <- cbind(log_para, posterior_param[, 5])
+      para_hat <- apply(log_para, 2, mean)
+      para_sd <- apply(log_para, 2, sd)
+      para_corr1 <- boot::corr(log_para[, 1:2])
+      para_corr2 <- boot::corr(log_para[, 3:4])
+      posterior_para_summary <- list(para_hat = para_hat,
+                                     para_sd = para_sd, para_corr1 = para_corr1, para_corr2 = para_corr2)
+      samples_sdose <- matrix(0, nprov_dose, nsamples)
+      for (i in 1:nprov_dose) {
+        for (j in 1:nsamples) {
+          samples_sdose[i, j] <- tox_prob(sprov_dose[i,
+                                                     1], sprov_dose[i, 2], posterior_param[j, ])$pi12
+        }
+      }
+      posterior_prob_summary <- matrix(0, length(category_bound) +
+                                         1, nprov_dose)
+      for (i in 1:nprov_dose) {
+        posterior_prob_summary[, i] <- as.numeric(table(cut(samples_sdose[i,
+        ], breaks = c(0, category_bound[1], category_bound[2],
+                      1), right = TRUE))/nsamples)
+      }
+      posterior_pi_summary <- matrix(0, 5, nprov_dose)
+      for (i in 1:nprov_dose) {
+        posterior_pi_summary[, i] <- c(mean(samples_sdose[i,
+        ]), sd(samples_sdose[i, ]), quantile(samples_sdose[i,
+        ], c(0.025, 0.5, 0.975)))
+      }
+      safe_dose_range <- (posterior_prob_summary[3, ] <= ewoc)
+      if (sum(safe_dose_range) != 0) {
+        posterior_prob_summary <- as.data.frame(posterior_prob_summary)
+        posterior_pi_summary <- as.data.frame(posterior_pi_summary)
+        names(posterior_prob_summary) <- paste(1:nrow(prov_dose))
+        names(posterior_pi_summary) <- names(posterior_prob_summary)
+        next_dose_index <- as.numeric(names(which.max(posterior_prob_summary[2,
+                                                                             safe_dose_range])))
+        next_dose_level <- prov_dose[next_dose_index, ]
+        next_dose_posterior_prob_summary <- posterior_prob_summary[,
+                                                                   next_dose_index]
+        next_dose_posterior_pi_summary <- posterior_pi_summary[,
+                                                               next_dose_index]
+        next_dose <- list(index = next_dose_index, dose = next_dose_level,
+                          posterior_prob_summary = list(next_dose_posterior_prob_summary),
+                          posterior_pi_summary = list(next_dose_posterior_pi_summary))
+      }
+      else {
+        next_dose <- NULL
+      }
+      posterior_prob_summary <- as.matrix(posterior_prob_summary)
+      posterior_pi_summary <- as.matrix(posterior_pi_summary)
+      return(list(posterior_prob_summary = posterior_prob_summary,
+                  posterior_para_summary = posterior_para_summary,
+                  posterior_pi_summary = posterior_pi_summary, next_dose = next_dose))
+    }
+    prior_para <- prior_summary(prior)
+    seeds <- data$seeds
+    nsamples <- data$nsamples
+    burn_in <- data$burn_in
+    n_pat <- data$n_pat
+    dlt_test <- data$dlt
+    ewoc <- data$ewoc
+    category_bound <- data$category_bound
+    category_name <- data$category_name
+    drug1_name <- data$drug1_name
+    prov_dose1 <- data$prov_dose1
+    ref_dose1 <- data$ref_dose1
+    dose1_unit <- data$dose1_unit
+    dose1 <- data$dose1
+    drug2_name <- data$drug2_name
+    prov_dose2 <- data$prov_dose2
+    ref_dose2 <- data$ref_dose2
+    dose2_unit <- data$dose2_unit
+    dose2 <- data$dose2
+    sdose1 <- log(dose1/ref_dose1)
+    sdose2 <- log(dose2/ref_dose2)
+    sdose <- cbind(sdose1, sdose2)
+    ndose1 <- length(sdose1)
+    ndose2 <- length(sdose2)
+    ndose <- nrow(sdose)
+    prov_dose <- expand.grid(prov_dose1, prov_dose2)
+    sprov_dose <- expand.grid(log(prov_dose1/ref_dose1), log(prov_dose2/ref_dose2))
+    nprov_dose1 <- length(prov_dose1)
+    nprov_dose2 <- length(prov_dose2)
+    nprov_dose <- nrow(prov_dose)
+    current_dose_index <- 1
+    dose_index <- cohort_size <- dlt <- NULL
+    data_sdose1 <- data_sdose2 <- data_dlt <- NULL
+    cohort_all <- list()
+    t <- 1
+    while (current_dose_index <= ndose) {
+      current_cohort_size <- n_pat[current_dose_index]
+      current_dlt <- dlt_test[current_dose_index]
+      dose_index <- c(dose_index, current_dose_index)
+      cohort_size <- c(cohort_size, current_cohort_size)
+      dlt <- c(dlt, current_dlt)
+      current_data_sdose1 <- rep(sdose[current_dose_index,
+                                       1], current_cohort_size)
+      current_data_sdose2 <- rep(sdose[current_dose_index,
+                                       2], current_cohort_size)
+      data_sdose1 <- c(data_sdose1, current_data_sdose1)
+      data_sdose2 <- c(data_sdose2, current_data_sdose2)
+      current_data_dlt <- ifelse(rep(current_dlt == 0, current_cohort_size),
+                                 rep(0, current_cohort_size), c(rep(1, current_dlt),
+                                                                rep(0, current_cohort_size - current_dlt)))
+      data_dlt <- c(data_dlt, current_data_dlt)
+      cohort <- single_cohort()
+      cohort_all[[current_dose_index]] <- list(dose_index = dose_index,
+                                               cohort_size = cohort_size, dlt = dlt, posterior_prob = cohort$posterior_prob_summary,
+                                               posterior_para = cohort$posterior_para_summary,
+                                               posterior_pi = cohort$posterior_pi_summary, next_dose = cohort$next_dose)
+      if (is.null(cohort$next_dose)) {
+        break
+      }
+      else {
+        current_dose_index <- current_dose_index + 1
+      }
+      cat("tested drug combination ", t, " is done.\n", sep = "")
+      t <- t + 1
+    }
+    cohort_final <- cohort_all[[length(cohort_all)]]
+    prob_posterior <- cohort_final$posterior_prob
+    pi_posterior <- cohort_final$posterior_pi
+    para_posterior <- cohort_final$posterior_para
+    next_dose <- cohort_final$next_dose
+    return(list(prob_posterior = prob_posterior, para_posterior = para_posterior,
+                pi_posterior = pi_posterior, next_dose = next_dose,
+                cohort_all = cohort_all))
+  }
+
   get.oc.comb.boin.blrm <- function(BLRMspecs, target, p.true, ncohort, cohortsize, preferred.doses,
                                n.earlystop = 100, startdose = c(1, 1), titration = FALSE,
                                p.saf = 0.6 * target, p.tox = 1.4 * target, cutoff.eli = 0.95,
@@ -306,8 +498,8 @@ get.oc.combBB <- function (BLRMspecs, target, p.true, ncohort, cohortsize, prefe
 
     # simulation trials -------------------------------------------------------
     for (trial in 1:ntrial) {
-
-      if(trial==200){
+  cat("i_trial:",trial,"\n")
+      if(trial==33){
         xx=1
       }
       y <- matrix(rep(0, ndose), dim(p.true)[1], dim(p.true)[2]) # DLT patients
@@ -459,11 +651,11 @@ get.oc.combBB <- function (BLRMspecs, target, p.true, ncohort, cohortsize, prefe
                 cat("current dose considered for escalation:", d, "\n")
                 tested_dose <- translate_cohorts(BLRMspecs$prov_dose1, BLRMspecs$prov_dose2, y, n)
                 BLRMdata <- c(BLRMspecs, tested_dose)
-                blrm_trial <- blrm::blrm_combo_ss(prior=BLRMspecs$prior, data=BLRMdata, output_excel=FALSE, output_pdf=FALSE)
+                blrm_trial <- blrm_combo_ss_local(prior=BLRMspecs$prior, data=BLRMdata, output_excel=FALSE, output_pdf=FALSE)
                 candidate_dose = find_immediate_neighbors(BLRMspecs$prov_dose1, BLRMspecs$prov_dose2, d)
                 candidate_prob_posterior = blrm_trial$prob_posterior[2, candidate_dose]
-                next_dose <- prov_dose[candidate_dose[which.max(candidate_prob_posterior)],]
-                d = c(which(BLRMspecs$prov_dose1==next_dose$Var1), which(BLRMspecs$prov_dose2==next_dose$Var2))
+                next.dose <- prov_dose[candidate_dose[which.max(candidate_prob_posterior)],]
+                d = c(which(BLRMspecs$prov_dose1==next.dose$Var1), which(BLRMspecs$prov_dose2==next.dose$Var2))
                 cat("BLRM recommended dose for escalation:", d, "\n")
               }
               #   if(prefer[1] != prefer[2]){ # one prefered, one low priority
@@ -523,11 +715,11 @@ get.oc.combBB <- function (BLRMspecs, target, p.true, ncohort, cohortsize, prefe
                 cat("current dose considered for de-escalation:", d, "\n")
                 tested_dose <- translate_cohorts(BLRMspecs$prov_dose1, BLRMspecs$prov_dose2, y, n)
                 BLRMdata <- c(BLRMspecs, tested_dose)
-                blrm_trial <- blrm::blrm_combo_ss(prior=BLRMspecs$prior, data=BLRMdata, output_excel=FALSE, output_pdf=FALSE)
+                blrm_trial <- blrm_combo_ss_local(prior=BLRMspecs$prior, data=BLRMdata, output_excel=FALSE, output_pdf=FALSE)
                 candidate_dose = find_immediate_neighbors(BLRMspecs$prov_dose1, BLRMspecs$prov_dose2, d, escalate=FALSE)
                 candidate_prob_posterior = blrm_trial$prob_posterior[2, candidate_dose]
-                next_dose <- prov_dose[candidate_dose[which.max(candidate_prob_posterior)],]
-                d = c(which(BLRMspecs$prov_dose1==next_dose$Var1), which(BLRMspecs$prov_dose2==next_dose$Var2))
+                next.dose <- prov_dose[candidate_dose[which.max(candidate_prob_posterior)],]
+                d = c(which(BLRMspecs$prov_dose1==next.dose$Var1), which(BLRMspecs$prov_dose2==next.dose$Var2))
                 cat("BLRM recommended dose for de-escalation:", d, "\n")
               }
               #   if(prefer[1] != prefer[2]){ # one prefered, one low priority

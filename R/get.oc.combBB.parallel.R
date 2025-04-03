@@ -181,7 +181,7 @@
 #'
 #'
 #'oc.comb <- get.oc.combBB.parallel(BLRMspecs, target=0.3, p.true=S1.p.true, ncohort=10, cohortsize=3,
-#'                         preferred.doses = doses.cp, n.earlystop=9, startdose=c(1,1), ntrial=1000)
+#'                         preferred.doses = doses.cp, n.earlystop=9, startdose=c(1,1), ntrial=1000, nCore=5)
 #'
 #'summary(oc.comb)
 #'

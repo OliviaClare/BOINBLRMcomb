@@ -2,7 +2,12 @@
 
 S3method(summary,boinP)
 export(get.oc.combBB)
+export(get.oc.combBB.parallel)
 export(get.oc.combP)
 import(BOIN)
 import(blrm)
 import(stats)
+importFrom(parallel,detectCores)
+importFrom(parallel,makeCluster)
+importFrom(parallel,parLapply)
+importFrom(parallel,stopCluster)

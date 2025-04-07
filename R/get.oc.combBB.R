@@ -188,6 +188,7 @@
 #' @import BOIN
 #' @import stats
 #' @import blrm
+#' @import coda
 #' @export
 
 
@@ -304,6 +305,67 @@ get.oc.combBB <- function (BLRMspecs, target, p.true, ncohort, cohortsize, prefe
       ]
       eta <- res$eta[1, , ][-c(1:(burn_in * nsamples/2)),
       ]
+
+      # # Convert to coda's mcmc.list format for diagnostics
+      #
+      # samples_list <- mcmc.list(
+      #   mcmc(cbind(
+      #     alpha1 = res$alpha[1,,1],
+      #     beta1 = res$alpha[2,,1],
+      #     alpha2 = res$alpha[3,,1],
+      #     beta2 = res$alpha[4,,1],
+      #     eta = res$eta[,,1]
+      #   )),
+      #   mcmc(cbind(
+      #     alpha1 = res$alpha[1,,2],
+      #     beta1 = res$alpha[2,,2],
+      #     alpha2 = res$alpha[3,,2],
+      #     beta2 = res$alpha[4,,2],
+      #     eta = res$eta[,,2]
+      #   ))
+      # )
+      #
+      # # --- Convergence Diagnostics ---
+      # cat("\n--- Convergence Diagnostics ---\n")
+      #
+      # # 1. Trace plots
+      # try(traceplot(samples_list), silent = TRUE)  # Wrap in try() to prevent crashes
+      #
+      # # 2. Gelman-Rubin Diagnostic
+      # gelman <- gelman.diag(samples_list, multivariate = FALSE)
+      # cat("Gelman-Rubin Diagnostic (PSRF ~1):\n")
+      # print(gelman)
+      #
+      # # 3. Geweke Diagnostic
+      # geweke_z <- geweke.diag(samples_list)
+      # cat("\nGeweke Z-scores (|z| <1.96):\n")
+      # print(geweke_z)
+      #
+      # # 4. Raftery-Lewis Burn-in Estimation
+      # raf <- raftery.diag(samples_list)
+      # burn_in_needed <- max(sapply(raf, function(x) max(x$resmatrix[,"M"])))  # Key fix here
+      # cat("\nRaftery-Lewis Suggested Burn-in:", burn_in_needed, "\n")
+      #
+      # # 5. Heidelberger-Welch Stationarity
+      # heidel <- heidel.diag(samples_list)
+      # cat("\nHeidelberger-Welch Stationarity:\n")
+      # print(heidel)
+      #
+      # # Determine final burn-in to use
+      # burn_in_final <- max(burn_in_needed, burn_in * nsamples/2)
+      # if(burn_in_final >= dim(res$alpha)[2]) {
+      #   warning("Suggested burn-in exceeds chain length! Keeping all samples")
+      #   burn_in_final <- 0
+      # }
+      # keep_samples <- (burn_in_final + 1):dim(res$alpha)[2]
+      #
+      # # --- Apply burn-in to all parameters ---
+      # alpha1 <- res$alpha[1, keep_samples, ]
+      # beta1 <- res$alpha[2, keep_samples, ]
+      # alpha2 <- res$alpha[3, keep_samples, ]
+      # beta2 <- res$alpha[4, keep_samples, ]
+      # eta <- res$eta[1, keep_samples, ]
+
       posterior_param <- cbind(c(alpha1), c(beta1), c(alpha2),
                                c(beta2), c(eta))
       log_para <- apply(posterior_param[, 1:4], 2, log)
@@ -498,7 +560,7 @@ get.oc.combBB <- function (BLRMspecs, target, p.true, ncohort, cohortsize, prefe
 
     # simulation trials -------------------------------------------------------
     for (trial in 1:ntrial) {
-  cat("i_trial:",trial,"\n")
+  # cat("i_trial:",trial,"\n")
       if(trial==33){
         xx=1
       }

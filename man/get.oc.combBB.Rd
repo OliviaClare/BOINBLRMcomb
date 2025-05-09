@@ -58,6 +58,8 @@ Otherwise, BOIN design is used to search for a single MTD.}
 \item{boundMTD}{set \code{boundMTD=TRUE} to impose the condition: the isotonic estimate of toxicity
 probability for the selected MTD must be less than de-escalation boundary.}
 
+\item{explore_deescalation}{TRUE or FALSE. Whether to go to unexplored dose in de-escalation, disregarding the posterior probability.}
+
 \item{seed}{the random seed for simulation}
 }
 \value{

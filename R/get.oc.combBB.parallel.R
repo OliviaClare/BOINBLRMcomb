@@ -759,18 +759,15 @@ get.oc.combBB.parallel <- function (BLRMspecs, target, p.true, ncohort, cohortsi
         }
         ## de-escalate ----------------------------
         else if (y[d[1], d[2]] >= b.d[nc]) {
-          delevel = matrix(c(-1, 0, 0, -1), 2)
-          pr_H0 = rep(0, length(delevel)/2)
-          nn = yn = pr_H0
+
           if(d[1]==1 && d[2] > 1 ){ # if reach boundary in one direction
             d = d + c(0,-1)*( preferred.doses[d[1],d[2]-1]>=0)
           }else if (d[1]>1 && d[2] == 1){ # if reach boundary in one direction
             d = d + c(-1,0)*( preferred.doses[d[1]-1,d[2]]>=0)
-          }else if(explore_deescalation && sum(nn==0)>0){
-            k = which(nn==0)
-            d = d + c(delevel[1, k], delevel[2, k])
           }else{
-
+            delevel = matrix(c(-1, 0, 0, -1), 2)
+            pr_H0 = rep(0, length(delevel)/2)
+            nn = yn = pr_H0
             prefer = rep(0, length(elevel)/2) # to store preference for two candidate dose
             for (i in seq(1, length(delevel)/2, by = 1)) {
               if (d[1] + delevel[1, i] > 0 && d[2] + delevel[2,
@@ -790,8 +787,10 @@ get.oc.combBB.parallel <- function (BLRMspecs, target, p.true, ncohort, cohortsi
 
             if (max(pr_H0) <= 0) { # for dose with no de-escalation option
               d = d
-            }
-            else {
+            }else if(explore_deescalation && sum(nn==0)>0){ # explore the untested dose in de-escalation
+              k = which(nn==0)[1]
+              d = d + c(delevel[1, k], delevel[2, k])
+            }else {
               ## select candidate dose based on preference and posterior prob
               if(min(prefer)<0){ # if one dose not considered, go to the other dose
                 k = which.max(prefer)

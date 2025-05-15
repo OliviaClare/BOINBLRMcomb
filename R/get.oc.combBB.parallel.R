@@ -768,7 +768,7 @@ get.oc.combBB.parallel <- function (BLRMspecs, target, p.true, ncohort, cohortsi
             delevel = matrix(c(-1, 0, 0, -1), 2)
             pr_H0 = rep(0, length(delevel)/2)
             nn = yn = pr_H0
-            prefer = rep(0, length(elevel)/2) # to store preference for two candidate dose
+            prefer = rep(0, length(delevel)/2) # to store preference for two candidate dose
             for (i in seq(1, length(delevel)/2, by = 1)) {
               if (d[1] + delevel[1, i] > 0 && d[2] + delevel[2,
                                                              i] > 0) {

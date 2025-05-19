@@ -693,9 +693,15 @@ get.oc.combBB.parallel <- function (BLRMspecs, target, p.true, ncohort, cohortsi
 
         ## escalate ---------------------------------
         if (y[d[1], d[2]] <= b.e[nc]) {
-          if(d[1]==dim(p.true)[1] && d[2] < dim(p.true)[2] ){ # if reach boundary in one direction
+          if(d[1]==dim(p.true)[1] && d[2] == dim(p.true)[2] ){ # if reach boundary in one direction
+            d = d
+          }else if(d[1]==dim(p.true)[1] && d[2] < dim(p.true)[2] ){ # if reach boundary in one direction
             d = d + c(0,1)*( preferred.doses[d[1],d[2]+1]>=0)
           }else if (d[1]<dim(p.true)[1] && d[2] == dim(p.true)[2]){ # if reach boundary in one direction
+            d = d + c(1,0)*( preferred.doses[d[1]+1,d[2]]>=0)
+          }else if(elimi[d[1]+1, d[2]]==1 && elimi[d[1], d[2]+1]==0 ){ # if reach eliminated dose in one direction
+            d = d + c(0,1)*( preferred.doses[d[1],d[2]+1]>=0)
+          }else if (elimi[d[1], d[2]+1]==1 && elimi[d[1]+1, d[2]]==0){ # if reach eliminated dose in one direction
             d = d + c(1,0)*( preferred.doses[d[1]+1,d[2]]>=0)
           }else{
             elevel = matrix(c(1, 0, 0, 1), 2) # Two potential escalation directions
@@ -764,6 +770,10 @@ get.oc.combBB.parallel <- function (BLRMspecs, target, p.true, ncohort, cohortsi
             d = d + c(0,-1)*( preferred.doses[d[1],d[2]-1]>=0)
           }else if (d[1]>1 && d[2] == 1){ # if reach boundary in one direction
             d = d + c(-1,0)*( preferred.doses[d[1]-1,d[2]]>=0)
+          }else if(elimi[d[1]-1, d[2]]==1 && elimi[d[1], d[2]-1]==0 ){ # if reach eliminated dose in one direction
+            d = d + c(0,-1)*( preferred.doses[d[1],d[2]-1]>=0)
+          }else if (elimi[d[1], d[2]-1]==1 && elimi[d[1]-1, d[2]]==0){ # if reach eliminated dose in one direction
+            d = d + c(-1,0)*( preferred.doses[d[1]-1,d[2]]>=0)
           }else{
             delevel = matrix(c(-1, 0, 0, -1), 2)
             pr_H0 = rep(0, length(delevel)/2)
@@ -830,7 +840,6 @@ get.oc.combBB.parallel <- function (BLRMspecs, target, p.true, ncohort, cohortsi
           d = d
         }
 
-
       }
       Y[, , trial] = y
       N[, , trial] = n
@@ -878,7 +887,7 @@ get.oc.combBB.parallel <- function (BLRMspecs, target, p.true, ncohort, cohortsi
       out = list(p.true = round(p.true, 2), preferred.doses = preferred.doses.c, selpercent = round(selpercent,2),
                  npatients = round(apply(N, c(1, 2), mean),2), ntox = round(apply(Y, c(1, 2), mean), 2),
                  totaltox = round(sum(Y)/ntrial, 1), totaln = round(sum(N)/ntrial,1),
-                 pcs = paste(round(sum(selpercent[which(abs(p.true -target) == min(abs(p.true - target)), arr.ind = TRUE)]),1), "%", sep = ""),
+                 pcs = paste(round(sum(selpercent[which(abs(p.true -target) == 0, arr.ind = TRUE)]),1), "%", sep = ""),
                  pas = paste(round(sum(selpercent[which((p.true<=0.33 & p.true>=0.16), arr.ind = TRUE)]),1), "%"),
                  npercent = paste(round(sum(nptsdose[which(abs(p.true -target) == min(abs(p.true - target)), arr.ind = TRUE)])/sum(nptsdose) *100, 1), "%", sep = ""),
                  percentstop=100-sum(round(selpercent,2)),flowchart = FALSE)

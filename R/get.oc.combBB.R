@@ -901,7 +901,7 @@ get.oc.combBB <- function (BLRMspecs, target, p.true, ncohort, cohortsize, prefe
       out = list(p.true = round(t(p.true), 2), preferred.doses = preferred.doses.c,  selpercent = round(t(selpercent),2),
                  npatients = round(t(apply(N, c(1, 2), mean)), 2), ntox = round(t(apply(Y, c(1, 2), mean)),2),
                  totaltox = round(sum(Y)/ntrial, 1), totaln = round(sum(N)/ntrial,1),
-                 pcs = paste(round(sum(selpercent[which(abs(p.true -target) == min(abs(p.true - target)), arr.ind = TRUE)]),
+                 pcs = paste(round(sum(selpercent[which(abs(p.true -target) == 0, arr.ind = TRUE)]),
                                                                                                         1), "%"),
                  pas = paste(round(sum(selpercent[which((p.true<=0.33 & p.true>=0.16), arr.ind = TRUE)]),1), "%"),
                  npercent = paste(round(sum(nptsdose[which(abs(p.true -target) == min(abs(p.true - target)), arr.ind = TRUE)])/sum(nptsdose) *100, 1), "%"),

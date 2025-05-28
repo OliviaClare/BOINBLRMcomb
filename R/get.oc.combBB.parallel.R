@@ -787,43 +787,42 @@ get.oc.combBB.parallel <- function (BLRMspecs, target, p.true, ncohort, cohortsi
 
             if (max(pr_H0) <= 0) { # for dose with no de-escalation option
               d = d
+            }else if(min(prefer)<0){ # if one dose not considered, go to the other dose
+              k = which.max(prefer)
+              d = d + c(delevel[1, k], delevel[2, k])
             }else if(explore_deescalation && sum(nn==0)>0){ # explore the untested dose in de-escalation
               k = which(nn==0)[1]
               d = d + c(delevel[1, k], delevel[2, k])
             }else {
-              ## select candidate dose based on preference and posterior prob
-              if(min(prefer)<0){ # if one dose not considered, go to the other dose
-                k = which.max(prefer)
-                d = d + c(delevel[1, k], delevel[2, k])
-              }else { ## BLRM to calculate probability
-                print(n)
-                print(y)
-                cat("current dose considered for de-escalation:", d, "\n")
-                tested_dose <- translate_cohorts(BLRMspecs$prov_dose1, BLRMspecs$prov_dose2, y, n)
-                BLRMdata <- c(BLRMspecs, tested_dose)
-                blrm_trial <- blrm_combo_ss_local(prior=BLRMspecs$prior, data=BLRMdata, output_excel=FALSE, output_pdf=FALSE)
-                candidate_dose = find_immediate_neighbors(BLRMspecs$prov_dose1, BLRMspecs$prov_dose2, d, escalate=FALSE)
-                candidate_prob_posterior = blrm_trial$prob_posterior[2, candidate_dose]
-                next.dose <- prov_dose[candidate_dose[which.max(candidate_prob_posterior)],]
-                d = c(which(BLRMspecs$prov_dose1==next.dose$Var1), which(BLRMspecs$prov_dose2==next.dose$Var2))
-                cat("BLRM recommended dose for de-escalation:", d, "\n")
-              }
-              #   if(prefer[1] != prefer[2]){ # one prefered, one low priority
-              #   if(max(nn)==0 || min(pr_H0)==max(pr_H0)){ k = which.max(prefer)} # if both have no data or have equal prob, go to the preferred dose
-              #   else if(min(nn)>0){ k = which.max(pr_H0)} # if both have data and not equal prob, go to higher prob
-              #   else if(max(nn)>0 & min(nn)==0){
-              #     if(yn[which.max(nn)] <= b.e[nn]){k = 1+round(runif(1))} # not toxic, random
-              #     else if(yn[which.max(nn)] >= b.d[nn]){k = which.min(nn)} # toxic go to the other dose
-              #     } # if one has data, the other has not, go to the one has no data
-              # }else if(prefer[1] == prefer[2]){ # same priority
-              #   if(max(nn)==0 || min(pr_H0)==max(pr_H0)){ k = 1+round(runif(1))} # if both have no data or have equal prob, random pick with equal allocation
-              #   else if(min(nn)>0){ k = which.max(pr_H0)} # if both have data and not equal prob, go to higher prob
-              #   else if(max(nn)>0 & min(nn)==0){ k = which.min(nn)} # if one has data, the other has not, go to the one has no data
-              # }
-              #
-              # d = d + c(delevel[1, k], delevel[2, k])
-
+              ## BLRM to calculate probability
+              print(n)
+              print(y)
+              cat("current dose considered for de-escalation:", d, "\n")
+              tested_dose <- translate_cohorts(BLRMspecs$prov_dose1, BLRMspecs$prov_dose2, y, n)
+              BLRMdata <- c(BLRMspecs, tested_dose)
+              blrm_trial <- blrm_combo_ss_local(prior=BLRMspecs$prior, data=BLRMdata, output_excel=FALSE, output_pdf=FALSE)
+              candidate_dose = find_immediate_neighbors(BLRMspecs$prov_dose1, BLRMspecs$prov_dose2, d, escalate=FALSE)
+              candidate_prob_posterior = blrm_trial$prob_posterior[2, candidate_dose]
+              next.dose <- prov_dose[candidate_dose[which.max(candidate_prob_posterior)],]
+              d = c(which(BLRMspecs$prov_dose1==next.dose$Var1), which(BLRMspecs$prov_dose2==next.dose$Var2))
+              cat("BLRM recommended dose for de-escalation:", d, "\n")
             }
+            #   if(prefer[1] != prefer[2]){ # one prefered, one low priority
+            #   if(max(nn)==0 || min(pr_H0)==max(pr_H0)){ k = which.max(prefer)} # if both have no data or have equal prob, go to the preferred dose
+            #   else if(min(nn)>0){ k = which.max(pr_H0)} # if both have data and not equal prob, go to higher prob
+            #   else if(max(nn)>0 & min(nn)==0){
+            #     if(yn[which.max(nn)] <= b.e[nn]){k = 1+round(runif(1))} # not toxic, random
+            #     else if(yn[which.max(nn)] >= b.d[nn]){k = which.min(nn)} # toxic go to the other dose
+            #     } # if one has data, the other has not, go to the one has no data
+            # }else if(prefer[1] == prefer[2]){ # same priority
+            #   if(max(nn)==0 || min(pr_H0)==max(pr_H0)){ k = 1+round(runif(1))} # if both have no data or have equal prob, random pick with equal allocation
+            #   else if(min(nn)>0){ k = which.max(pr_H0)} # if both have data and not equal prob, go to higher prob
+            #   else if(max(nn)>0 & min(nn)==0){ k = which.min(nn)} # if one has data, the other has not, go to the one has no data
+            # }
+            #
+            # d = d + c(delevel[1, k], delevel[2, k])
+
+
           }
         }
         else { ## stay ----------------------------------------------------------

@@ -771,15 +771,14 @@ get.oc.combBB <- function (BLRMspecs, target, p.true, ncohort, cohortsize, prefe
 
             if (max(pr_H0) <= 0) { # for dose with no de-escalation option
               d = d
+            }else if(min(prefer)<0){ # if one dose not considered, go to the other dose
+              k = which.max(prefer)
+              d = d + c(delevel[1, k], delevel[2, k])
             }else if(explore_deescalation && sum(nn==0)>0){ # explore the untested dose in de-escalation
               k = which(nn==0)[1]
               d = d + c(delevel[1, k], delevel[2, k])
             }else {
-              ## select candidate dose based on preference and posterior prob
-              if(min(prefer)<0){ # if one dose not considered, go to the other dose
-                k = which.max(prefer)
-                d = d + c(delevel[1, k], delevel[2, k])
-              }else { ## BLRM to calculate probability
+              ## BLRM to calculate probability
                 print(n)
                 print(y)
                 cat("current dose considered for de-escalation:", d, "\n")
@@ -807,7 +806,7 @@ get.oc.combBB <- function (BLRMspecs, target, p.true, ncohort, cohortsize, prefe
               #
               # d = d + c(delevel[1, k], delevel[2, k])
 
-            }
+
           }
         }
         else { ## stay ----------------------------------------------------------

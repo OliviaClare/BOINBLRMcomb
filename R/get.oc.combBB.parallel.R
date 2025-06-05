@@ -731,6 +731,7 @@ get.oc.combBB.parallel <- function (BLRMspecs, target, p.true, ncohort, cohortsi
                 print(n)
                 print(y)
                 cat("current dose considered for escalation:", d, "\n")
+                BLRMspecs$seeds = round(runif(2, min=1, max=1000))
                 tested_dose <- translate_cohorts(BLRMspecs$prov_dose1, BLRMspecs$prov_dose2, y, n)
                 BLRMdata <- c(BLRMspecs, tested_dose)
                 blrm_trial <- blrm_combo_ss_local(prior=BLRMspecs$prior, data=BLRMdata, output_excel=FALSE, output_pdf=FALSE)
@@ -797,6 +798,7 @@ get.oc.combBB.parallel <- function (BLRMspecs, target, p.true, ncohort, cohortsi
               ## BLRM to calculate probability
               print(n)
               print(y)
+              BLRMspecs$seeds = round(runif(2, min=1, max=1000))
               cat("current dose considered for de-escalation:", d, "\n")
               tested_dose <- translate_cohorts(BLRMspecs$prov_dose1, BLRMspecs$prov_dose2, y, n)
               BLRMdata <- c(BLRMspecs, tested_dose)

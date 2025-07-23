@@ -378,7 +378,7 @@ get.oc.combP <- function (target, p.true, ncohort, cohortsize, preferred.doses, 
               if(min(prefer)<0){ # if one dose not considered, go to the other dose
                 k = which.max(prefer)
                 d = d + c(elevel[1, k], elevel[2, k])
-              }else if(prefer[1] == prefer[2] && min(nn)>0 && max(pr_H0)>min(pr_H0)){ # if both considered and both have data, go the the dose with higher posterior prob
+              }else if(prefer[1] == prefer[2] && max(pr_H0)>min(pr_H0)){ # if both considered and both have data, go to the dose with higher posterior prob
                 k = which.max(pr_H0)
                 d = d + c(elevel[1, k], elevel[2, k])
               }else{
@@ -442,11 +442,11 @@ get.oc.combP <- function (target, p.true, ncohort, cohortsize, preferred.doses, 
             }else if(min(prefer)<0){ # if one dose not considered, go to the other dose
               k = which.max(prefer)
               d = d + c(delevel[1, k], delevel[2, k])
-            }else if(prefer[1] == prefer[2] && min(nn)>0 && max(pr_H0)>min(pr_H0)){ # if both considered and both have data, go the the dose with higher posterior prob
-              k = which.max(pr_H0)
-              d = d + c(delevel[1, k], delevel[2, k])
             }else if(explore_deescalation && sum(nn==0)>0){ # explore the untested dose in de-escalation
               k = which(nn==0)[1]
+              d = d + c(delevel[1, k], delevel[2, k])
+            }else if(prefer[1] == prefer[2] && max(pr_H0)>min(pr_H0)){ # if both considered and both have data, go the the dose with higher posterior prob
+              k = which.max(pr_H0)
               d = d + c(delevel[1, k], delevel[2, k])
             }else{
               k = 1+round(runif(1))

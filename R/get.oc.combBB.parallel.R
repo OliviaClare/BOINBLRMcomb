@@ -721,11 +721,14 @@ get.oc.combBB.parallel <- function (BLRMspecs, target, p.true, ncohort, cohortsi
             }
 
             pr_H0 = pr_H0 + nn * 5e-04 + ifelse(prefer==-1, -99,0) # negative prob for not considered dose # avoid zero prob if candidate dose have patients
-            if (max(pr_H0) <= 0) { ##!!! no valid escalation if both not considered or both outside of dose matrix
+            if (max(prefer) <= 0) { ##!!! no valid escalation if both not considered or both outside of dose matrix
               d = d
             }else { ## select candidate dose based on preference and posterior prob
               if(min(prefer)<0){ # if one dose not considered, go to the other dose
                 k = which.max(prefer)
+                d = d + c(elevel[1, k], elevel[2, k])
+              }else if(prefer[1] == prefer[2] && min(nn)>0 && max(pr_H0)>min(pr_H0)){ # if both considered and both have data, go the the dose with higher posterior prob
+                k = which.max(pr_H0)
                 d = d + c(elevel[1, k], elevel[2, k])
               }else{ ## BLRM to calculate probability
                 print(n)
@@ -786,10 +789,13 @@ get.oc.combBB.parallel <- function (BLRMspecs, target, p.true, ncohort, cohortsi
 
             pr_H0 = (pr_H0 + nn * 5e-04) + ifelse(prefer==-1, -99,0) # negative prob for not considered dose
 
-            if (max(pr_H0) <= 0) { # for dose with no de-escalation option
+            if (max(prefer) <= 0) { # for dose with no de-escalation option
               d = d
             }else if(min(prefer)<0){ # if one dose not considered, go to the other dose
               k = which.max(prefer)
+              d = d + c(delevel[1, k], delevel[2, k])
+            }else if(prefer[1] == prefer[2] && min(nn)>0 && max(pr_H0)>min(pr_H0)){ # if both considered and both have data, go the the dose with higher posterior prob
+              k = which.max(pr_H0)
               d = d + c(delevel[1, k], delevel[2, k])
             }else if(explore_deescalation && sum(nn==0)>0){ # explore the untested dose in de-escalation
               k = which(nn==0)[1]
